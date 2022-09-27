@@ -1,6 +1,9 @@
 package main
 
 import (
+	"context"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"log"
@@ -8,6 +11,7 @@ import (
 	authpb "server/auth/api/gen/v1"
 	"server/auth/auth"
 	"server/auth/auth/wechat"
+	"server/auth/dao"
 )
 
 func main() {
@@ -20,13 +24,20 @@ func main() {
 		logger.Fatal("cannot listen", zap.Error(err))
 	}
 
+	c := context.Background()
+	mongoClient, err := mongo.Connect(c, options.Client().ApplyURI("mongodb://localhost:27017/SZTURC?readPreference=primary&ssl=false"))
+	if err != nil {
+		logger.Fatal("cannot connect database", zap.Error(err))
+	}
+
 	s := grpc.NewServer()
 	//TODO 配置化Appid和AppSecret
 	authpb.RegisterAuthServiceServer(s, &auth.Service{
 		OpenIDResolver: &wechat.Service{
-			AppID: "wxe4f040053ecc73d0",
-			AppSecret: "your AppSecret",
+			AppID:     "wxe4f040053ecc73d0",
+			AppSecret: "your APPSecret",
 		},
+		Mongo:  dao.NewMongo(mongoClient.Database("SZTURC")),
 		Logger: logger,
 	})
 

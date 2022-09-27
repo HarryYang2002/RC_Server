@@ -27,7 +27,7 @@ func main() {
 		[]grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())},
 	)
 	if err != nil {
-		log.Fatalf("cannto register auth service: %v", err)
+		log.Fatalf("cannot register auth service: %v", err)
 	}
 
 	log.Fatal(http.ListenAndServe(":8080", mux))
