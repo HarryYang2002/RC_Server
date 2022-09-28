@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	mgo "server/shared/mongo"
@@ -12,22 +13,30 @@ import (
 const openIDField = "open_id"
 
 type Mongo struct {
-	col *mongo.Collection
+	col      *mongo.Collection
+	newObjID func() primitive.ObjectID
 }
 
 func NewMongo(db *mongo.Database) *Mongo {
 	return &Mongo{
-		col: db.Collection("account"),
+		col:      db.Collection("account"),
+		newObjID: primitive.NewObjectID,
 	}
 }
 
 func (m *Mongo) ResolveAccountID(c context.Context, openID string) (string, error) {
+	//m.col.InsertOne(c, bson.M{
+	//	mgo.IDField: m.newObjID(),
+	//	openIDField: openID,
+	//})
+	insertID := m.newObjID()
 	res := m.col.FindOneAndUpdate(
 		c,
 		bson.M{
 			openIDField: openID,
 		},
-		mgo.Set(bson.M{
+		mgo.SetOnInsert(bson.M{
+			mgo.IDField: insertID,
 			openIDField: openID,
 		}),
 		options.FindOneAndUpdate().SetUpsert(true).SetReturnDocument(options.After),
