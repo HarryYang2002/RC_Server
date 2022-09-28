@@ -4,12 +4,16 @@ import (
 	"context"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"os"
+	mongotesting "server/shared/mongo/testing"
 	"testing"
 )
 
+var mongoURI string
+
 func TestResolveAccountID(t *testing.T) {
 	c := context.Background()
-	mc, err := mongo.Connect(c, options.Client().ApplyURI("mongodb://localhost:27017/SZTURC?readPreference=primary&ssl=false"))
+	mc, err := mongo.Connect(c, options.Client().ApplyURI(mongoURI))
 	if err != nil {
 		t.Fatalf("cannot connect mongodb: %v", err)
 	}
@@ -23,4 +27,9 @@ func TestResolveAccountID(t *testing.T) {
 			t.Errorf("resolve account id: want: %q.got: %q", want, id)
 		}
 	}
+}
+
+func TestMain(m *testing.M) {
+
+	os.Exit(mongotesting.RunWithMongoInDocker(m, &mongoURI))
 }
