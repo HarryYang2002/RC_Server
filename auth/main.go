@@ -2,16 +2,21 @@ package main
 
 import (
 	"context"
+	"github.com/dgrijalva/jwt-go"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
+	"io"
 	"log"
 	"net"
+	"os"
 	authpb "server/auth/api/gen/v1"
 	"server/auth/auth"
 	"server/auth/auth/wechat"
 	"server/auth/dao"
+	"server/auth/token"
+	"time"
 )
 
 func main() {
@@ -30,15 +35,32 @@ func main() {
 		logger.Fatal("cannot connect database", zap.Error(err))
 	}
 
+	pkFile, err := os.Open("auth/private.key")
+	if err != nil {
+		logger.Fatal("cannot open private key", zap.Error(err))
+	}
+
+	pkBytes, err := io.ReadAll(pkFile)
+	if err != nil {
+		logger.Fatal("cannot read private key", zap.Error(err))
+	}
+
+	privKey, err := jwt.ParseRSAPrivateKeyFromPEM(pkBytes)
+	if err != nil {
+		logger.Fatal("cannot parse private key", zap.Error(err))
+	}
+
 	s := grpc.NewServer()
 	//TODO 配置化Appid和AppSecret
 	authpb.RegisterAuthServiceServer(s, &auth.Service{
 		OpenIDResolver: &wechat.Service{
 			AppID:     "wxe4f040053ecc73d0",
-			AppSecret: "your APPSecret",
+			AppSecret: "your secret",
 		},
-		Mongo:  dao.NewMongo(mongoClient.Database("SZTURC")),
-		Logger: logger,
+		Mongo:          dao.NewMongo(mongoClient.Database("SZTURC")),
+		Logger:         logger,
+		TokenExpire:    2 * time.Hour,
+		TokenGenerator: token.NewJWTTokenGen("SZTURC/server/auth", privKey),
 	})
 
 	err = s.Serve(lis)
