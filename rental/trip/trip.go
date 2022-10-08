@@ -6,6 +6,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	rentalpb "server/rental/api/gen/v1"
+	"server/shared/auth"
 )
 
 type Service struct {
@@ -13,6 +14,10 @@ type Service struct {
 }
 
 func (s *Service) CreateTrip(c context.Context, req *rentalpb.CreateTripRequest) (*rentalpb.CreateTripResponse, error) {
-	s.Logger.Info("create trip", zap.String("start", req.Start))
+	aid, err := auth.AccountIDFromContext(c)
+	if err != nil {
+		return nil, err
+	}
+	s.Logger.Info("create trip", zap.String("start", req.Start), zap.String("account_id", aid))
 	return nil, status.Error(codes.Unimplemented, "")
 }
