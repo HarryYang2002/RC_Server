@@ -52,7 +52,7 @@ func main() {
 			//TODO 配置化Appid和AppSecret
 			authpb.RegisterAuthServiceServer(s, &auth.Service{
 				OpenIDResolver: &wechat.Service{
-					AppID:     "wxe4f040053ecc73d0",
+					AppID:     "your ID",
 					AppSecret: "your secret",
 				},
 				Mongo:          dao.NewMongo(mongoClient.Database("SZTURC")),
