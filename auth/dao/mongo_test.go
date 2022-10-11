@@ -23,18 +23,19 @@ func TestResolveAccountID(t *testing.T) {
 	m := NewMongo(mc.Database("SZTURC"))
 	_, err = m.col.InsertMany(c, []interface{}{
 		bson.M{
-			mgo.IDField: mustObjID("6332a23e9adaf7a55fa0ab49"),
-			openIDField: "openid_1",
+			mgo.IDFieldName: mustObjID("6332a23e9adaf7a55fa0ab49"),
+			openIDField:     "openid_1",
 		},
 		bson.M{
-			mgo.IDField: mustObjID("6332a23e9adaf7a55fa0ab70"),
-			openIDField: "openid_2",
+			mgo.IDFieldName: mustObjID("6332a23e9adaf7a55fa0ab70"),
+			openIDField:     "openid_2",
 		},
 	})
 	if err != nil {
 		t.Fatalf("cannot insert initial values: %v", err)
 	}
-	m.newObjID = func() primitive.ObjectID {
+
+	mgo.NewObjID = func() primitive.ObjectID {
 		return mustObjID("6332a23e9adaf7a55fa0ab78")
 	}
 

@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	mgo "server/shared/mongo"
@@ -13,14 +12,12 @@ import (
 const openIDField = "open_id"
 
 type Mongo struct {
-	col      *mongo.Collection
-	newObjID func() primitive.ObjectID
+	col *mongo.Collection
 }
 
 func NewMongo(db *mongo.Database) *Mongo {
 	return &Mongo{
-		col:      db.Collection("account"),
-		newObjID: primitive.NewObjectID,
+		col: db.Collection("account"),
 	}
 }
 
@@ -29,15 +26,15 @@ func (m *Mongo) ResolveAccountID(c context.Context, openID string) (string, erro
 	//	mgo.IDField: m.newObjID(),
 	//	openIDField: openID,
 	//})
-	insertID := m.newObjID()
+	insertID := mgo.NewObjID()
 	res := m.col.FindOneAndUpdate(
 		c,
 		bson.M{
 			openIDField: openID,
 		},
 		mgo.SetOnInsert(bson.M{
-			mgo.IDField: insertID,
-			openIDField: openID,
+			mgo.IDFieldName: insertID,
+			openIDField:     openID,
 		}),
 		options.FindOneAndUpdate().SetUpsert(true).SetReturnDocument(options.After),
 	)
@@ -45,7 +42,7 @@ func (m *Mongo) ResolveAccountID(c context.Context, openID string) (string, erro
 		return "", fmt.Errorf("cannot findOneAndUpdate: %v", err)
 	}
 
-	var row mgo.ObjID
+	var row mgo.IDField
 	err := res.Decode(&row)
 	if err != nil {
 		return "", fmt.Errorf("cannot decode result: %v", err)
