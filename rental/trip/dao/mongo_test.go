@@ -6,6 +6,8 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"os"
 	rentalpb "server/rental/api/gen/v1"
+	"server/shared/id"
+	"server/shared/mongo/objid"
 	mongotesting "server/shared/mongo/testing"
 	"testing"
 )
@@ -20,9 +22,9 @@ func TestCreateTrip(t *testing.T) {
 		t.Fatalf("cannot connect mongodb: %v", err)
 	}
 	m := NewMongo(mc.Database("SZTURC"))
-
+	acct := id.AccountID("account1")
 	trip, err := m.CreateTrip(c, &rentalpb.Trip{
-		AccountId: "account1",
+		AccountId: acct.String(),
 		CarId:     "car1",
 		Start: &rentalpb.LocationStatus{
 			Location: &rentalpb.Location{
@@ -46,6 +48,12 @@ func TestCreateTrip(t *testing.T) {
 		t.Errorf("cannot create trip: %v", err)
 	}
 	t.Errorf("inserted row %s with updatedat %v", trip.ID, trip.UpdatedAt)
+
+	got, err := m.GetTrip(c, objid.ToTripID(trip.ID), acct)
+	if err != nil {
+		t.Errorf("cannot get trip: %v", got)
+	}
+	t.Errorf("got trip %+v", got)
 }
 
 func TestMain(m *testing.M) {

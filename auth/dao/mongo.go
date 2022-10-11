@@ -6,7 +6,9 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"server/shared/id"
 	mgo "server/shared/mongo"
+	"server/shared/mongo/objid"
 )
 
 const openIDField = "open_id"
@@ -21,7 +23,7 @@ func NewMongo(db *mongo.Database) *Mongo {
 	}
 }
 
-func (m *Mongo) ResolveAccountID(c context.Context, openID string) (string, error) {
+func (m *Mongo) ResolveAccountID(c context.Context, openID string) (id.AccountID, error) {
 	//m.col.InsertOne(c, bson.M{
 	//	mgo.IDField: m.newObjID(),
 	//	openIDField: openID,
@@ -47,5 +49,5 @@ func (m *Mongo) ResolveAccountID(c context.Context, openID string) (string, erro
 	if err != nil {
 		return "", fmt.Errorf("cannot decode result: %v", err)
 	}
-	return row.ID.Hex(), nil
+	return objid.ToAccountID(row.ID), nil
 }

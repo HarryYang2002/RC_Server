@@ -12,6 +12,7 @@ import (
 	"io"
 	"os"
 	"server/shared/auth/token"
+	"server/shared/id"
 	"strings"
 )
 
@@ -46,12 +47,6 @@ func Interceptor(publicKeyFile string) (grpc.UnaryServerInterceptor, error) {
 
 type accountIDKey struct{}
 
-type AccountID string
-
-func (a AccountID) String() string {
-	return string(a)
-}
-
 type tokenVerifier interface {
 	Verify(token string) (string, error)
 }
@@ -71,7 +66,7 @@ func (i *interceptor) HandleReq(ctx context.Context, req interface{}, info *grpc
 		return nil, status.Errorf(codes.Unauthenticated, "token not valid: %v", err)
 	}
 
-	return handler(ContextWithAccountID(ctx, AccountID(aid)), req)
+	return handler(ContextWithAccountID(ctx, id.AccountID(aid)), req)
 }
 
 func tokenFromContext(c context.Context) (string, error) {
@@ -92,13 +87,13 @@ func tokenFromContext(c context.Context) (string, error) {
 	return tkn, nil
 }
 
-func ContextWithAccountID(c context.Context, aid AccountID) context.Context {
+func ContextWithAccountID(c context.Context, aid id.AccountID) context.Context {
 	return context.WithValue(c, accountIDKey{}, aid)
 }
 
-func AccountIDFromContext(c context.Context) (AccountID, error) {
+func AccountIDFromContext(c context.Context) (id.AccountID, error) {
 	v := c.Value(accountIDKey{})
-	aid, ok := v.(AccountID)
+	aid, ok := v.(id.AccountID)
 	if !ok {
 		return "", status.Error(codes.Unauthenticated, "")
 	}

@@ -2,9 +2,18 @@ package dao
 
 import (
 	"context"
+	"fmt"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	rentalpb "server/rental/api/gen/v1"
+	"server/shared/id"
 	mgo "server/shared/mongo"
+	"server/shared/mongo/objid"
+)
+
+const (
+	tripField      = "trip"
+	accountIDField = tripField + ".accountid"
 )
 
 type Mongo struct {
@@ -36,4 +45,24 @@ func (m *Mongo) CreateTrip(c context.Context, trip *rentalpb.Trip) (*TripRecord,
 	}
 
 	return r, nil
+}
+
+func (m *Mongo) GetTrip(c context.Context, id id.TripID, accountID id.AccountID) (*TripRecord, error) {
+	objID, err := objid.FromID(id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid id: %v", err)
+	}
+	res := m.col.FindOne(c, bson.M{
+		mgo.IDFieldName: objID,
+		accountIDField:  accountID,
+	})
+	if err := res.Err(); err != nil {
+		return nil, err
+	}
+	var tr TripRecord
+	err = res.Decode(&tr)
+	if err != nil {
+		return nil, fmt.Errorf("cannot decode: %v", err)
+	}
+	return &tr, nil
 }

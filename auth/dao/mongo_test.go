@@ -7,7 +7,9 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"os"
+	"server/shared/id"
 	mgo "server/shared/mongo"
+	"server/shared/mongo/objid"
 	mongotesting "server/shared/mongo/testing"
 	"testing"
 )
@@ -23,11 +25,11 @@ func TestResolveAccountID(t *testing.T) {
 	m := NewMongo(mc.Database("SZTURC"))
 	_, err = m.col.InsertMany(c, []interface{}{
 		bson.M{
-			mgo.IDFieldName: mustObjID("6332a23e9adaf7a55fa0ab49"),
+			mgo.IDFieldName: objid.MustFromID(id.AccountID("6332a23e9adaf7a55fa0ab49")),
 			openIDField:     "openid_1",
 		},
 		bson.M{
-			mgo.IDFieldName: mustObjID("6332a23e9adaf7a55fa0ab70"),
+			mgo.IDFieldName: objid.MustFromID(id.AccountID("6332a23e9adaf7a55fa0ab70")),
 			openIDField:     "openid_2",
 		},
 	})
@@ -36,7 +38,7 @@ func TestResolveAccountID(t *testing.T) {
 	}
 
 	mgo.NewObjID = func() primitive.ObjectID {
-		return mustObjID("6332a23e9adaf7a55fa0ab78")
+		return objid.MustFromID(id.AccountID("6332a23e9adaf7a55fa0ab78"))
 	}
 
 	cases := []struct {
@@ -67,19 +69,11 @@ func TestResolveAccountID(t *testing.T) {
 			if err != nil {
 				t.Errorf("faild resolve account id for %q: %v", cc.openID, err)
 			}
-			if id != cc.want {
+			if id.String() != cc.want {
 				t.Errorf("resolve account id: want: %q.got: %q", cc.want, id)
 			}
 		})
 	}
-}
-
-func mustObjID(hex string) primitive.ObjectID {
-	objID, err := primitive.ObjectIDFromHex(hex)
-	if err != nil {
-		panic(any(err))
-	}
-	return objID
 }
 
 func TestMain(m *testing.M) {
