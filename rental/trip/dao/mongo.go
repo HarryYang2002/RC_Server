@@ -14,6 +14,7 @@ import (
 const (
 	tripField      = "trip"
 	accountIDField = tripField + ".accountid"
+	statusField    = tripField + ".status"
 )
 
 type Mongo struct {
@@ -65,4 +66,52 @@ func (m *Mongo) GetTrip(c context.Context, id id.TripID, accountID id.AccountID)
 		return nil, fmt.Errorf("cannot decode: %v", err)
 	}
 	return &tr, nil
+}
+
+func (m *Mongo) GetTrips(c context.Context, accountID id.AccountID, status rentalpb.TripStatus) ([]*TripRecord, error) {
+	filter := bson.M{
+		accountIDField: accountID.String(),
+	}
+	if status != rentalpb.TripStatus_IS_NOT_SPECIFIED {
+		filter[statusField] = status
+	}
+	res, err := m.col.Find(c, filter)
+	if err != nil {
+		return nil, err
+	}
+
+	var trips []*TripRecord
+	for res.Next(c) {
+		var trip TripRecord
+		err := res.Decode(&trip)
+		if err != nil {
+			return nil, err
+		}
+		trips = append(trips, &trip)
+	}
+	return trips, nil
+}
+
+func (m *Mongo) UpdateTrip(c context.Context, tid id.TripID, aid id.AccountID, updatedAt int64, trip *rentalpb.Trip) error {
+	objID, err := objid.FromID(tid)
+	if err != nil {
+		return fmt.Errorf("invalid id: %v", err)
+	}
+
+	newUpdatedAt := mgo.UpdatedAt()
+	res, err := m.col.UpdateOne(c, bson.M{
+		mgo.IDFieldName:        objID,
+		accountIDField:         aid.String(),
+		mgo.UpdatedAtFieldName: updatedAt,
+	}, mgo.Set(bson.M{
+		tripField:              trip,
+		mgo.UpdatedAtFieldName: newUpdatedAt,
+	}))
+	if err != nil {
+		return err
+	}
+	if res.MatchedCount == 0 {
+		return mongo.ErrNoDocuments
+	}
+	return nil
 }

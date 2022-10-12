@@ -3,7 +3,6 @@ package dao
 import (
 	"context"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"os"
 	"server/shared/id"
 	mgo "server/shared/mongo"
@@ -33,9 +32,7 @@ func TestResolveAccountID(t *testing.T) {
 		t.Fatalf("cannot insert initial values: %v", err)
 	}
 
-	mgo.NewObjID = func() primitive.ObjectID {
-		return objid.MustFromID(id.AccountID("6332a23e9adaf7a55fa0ab78"))
-	}
+	mgo.NewObjIDWithValue(id.AccountID("6332a23e9adaf7a55fa0ab78"))
 
 	cases := []struct {
 		name   string

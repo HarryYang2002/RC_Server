@@ -68,9 +68,8 @@ func TestCreateTrip(t *testing.T) {
 	}
 
 	for _, cc := range cases {
-		mgo.NewObjID = func() primitive.ObjectID {
-			return objid.MustFromID(id.TripID(cc.tripID))
-		}
+
+		mgo.NewObjIDWithValue(id.TripID(cc.tripID))
 		trip, err := m.CreateTrip(c, &rentalpb.Trip{
 			AccountId: cc.accountID,
 			Status:    cc.tripStatus,
@@ -133,6 +132,187 @@ func TestGetTrip(t *testing.T) {
 	if diff := cmp.Diff(trip, got, protocmp.Transform()); diff != "" {
 		t.Errorf("result differs; -want + got: %s", diff)
 	}
+}
+
+func TestGetTrips(t *testing.T) {
+	rows := []struct {
+		id        string
+		accountID string
+		status    rentalpb.TripStatus
+	}{
+		{
+			id:        "63460c3247970cf89b68d543",
+			accountID: "account_id_for_get_trips",
+			status:    rentalpb.TripStatus_FINISHED,
+		},
+		{
+			id:        "63460c3247970cf89b68d544",
+			accountID: "account_id_for_get_trips",
+			status:    rentalpb.TripStatus_FINISHED,
+		},
+		{
+			id:        "63460c3247970cf89b68d545",
+			accountID: "account_id_for_get_trips",
+			status:    rentalpb.TripStatus_FINISHED,
+		},
+		{
+			id:        "63460c3247970cf89b68d546",
+			accountID: "account_id_for_get_trips",
+			status:    rentalpb.TripStatus_IN_PROGRESS,
+		},
+		{
+			id:        "63460c3247970cf89b68d547",
+			accountID: "account_id_for_get_trips_1",
+			status:    rentalpb.TripStatus_IN_PROGRESS,
+		},
+	}
+
+	c := context.Background()
+	mc, err := mongotesting.NewClient(c)
+	if err != nil {
+		t.Fatalf("cannot connect mongodb: %v", err)
+	}
+	m := NewMongo(mc.Database("SZTURC"))
+
+	for _, r := range rows {
+		mgo.NewObjIDWithValue(id.TripID(r.id))
+		_, err := m.CreateTrip(c, &rentalpb.Trip{
+			AccountId: r.accountID,
+			Status:    r.status,
+		})
+		if err != nil {
+			t.Fatalf("cannot create rows: %v", err)
+		}
+	}
+	cases := []struct {
+		name       string
+		accountID  string
+		status     rentalpb.TripStatus
+		wantCount  int
+		wantOnlyID string
+	}{
+		{
+			name:      "get_all",
+			accountID: "account_id_for_get_trips",
+			status:    rentalpb.TripStatus_IS_NOT_SPECIFIED,
+			wantCount: 4,
+		},
+		{
+			name:       "get_in_progress",
+			accountID:  "account_id_for_get_trips",
+			status:     rentalpb.TripStatus_IN_PROGRESS,
+			wantCount:  1,
+			wantOnlyID: "63460c3247970cf89b68d546",
+		},
+	}
+	for _, cc := range cases {
+		t.Run(cc.name, func(t *testing.T) {
+			res, err := m.GetTrips(context.Background(), id.AccountID(cc.accountID), cc.status)
+			if err != nil {
+				t.Errorf("cannot get trip: %v", err)
+			}
+
+			if cc.wantCount != len(res) {
+				t.Errorf("incorrect result count; want %d, got: %d", cc.wantCount, len(res))
+			}
+
+			if cc.wantOnlyID != "" && len(res) > 0 {
+				if cc.wantOnlyID != res[0].ID.Hex() {
+					t.Errorf("only_id incorrect; want: %q, got: %q", cc.wantOnlyID, res[0].ID.Hex())
+				}
+			}
+		})
+	}
+}
+
+// 模仿两个人同时对行程作出更改
+func TestUpdateTrip(t *testing.T) {
+	c := context.Background()
+	mc, err := mongotesting.NewClient(c)
+	if err != nil {
+		t.Fatalf("cannot connect mongodb: %v", err)
+	}
+	m := NewMongo(mc.Database("SZTURC"))
+
+	tid := id.TripID("63460c3237970cf89b68d543")
+	aid := id.AccountID("account_for_update")
+
+	var now int64 = 10000
+	mgo.NewObjIDWithValue(tid)
+	mgo.UpdatedAt = func() int64 {
+		return now
+	}
+
+	trip, err := m.CreateTrip(c, &rentalpb.Trip{
+		AccountId: aid.String(),
+		Status:    rentalpb.TripStatus_IN_PROGRESS,
+		Start: &rentalpb.LocationStatus{
+			PoiName: "start_poi",
+		},
+	})
+	if err != nil {
+		t.Fatalf("cannot create trip: %v", err)
+	}
+	if trip.UpdatedAt != 10000 {
+		t.Fatalf("wrong updatedat; want: 10000, got: %d", trip.UpdatedAt)
+	}
+
+	update := &rentalpb.Trip{
+		AccountId: aid.String(),
+		Status:    rentalpb.TripStatus_IN_PROGRESS,
+		Start: &rentalpb.LocationStatus{
+			PoiName: "start_poi_updated",
+		},
+	}
+
+	cases := []struct {
+		name          string
+		now           int64
+		withUpdatedAt int64
+		wantErr       bool
+	}{
+		{
+			name:          "normal_update",
+			now:           20000,
+			withUpdatedAt: 10000,
+			wantErr:       false,
+		},
+		{
+			name:          "normal_with_stale_timestamp",
+			now:           30000,
+			withUpdatedAt: 10000,
+			wantErr:       true,
+		},
+		{
+			name:          "normal_with_refetch",
+			now:           40000,
+			withUpdatedAt: 20000,
+			wantErr:       false,
+		},
+	}
+	for _, cc := range cases {
+		now = cc.now
+		err := m.UpdateTrip(c, tid, aid, cc.withUpdatedAt, update)
+		if cc.wantErr {
+			if err == nil {
+				t.Errorf("%s: want error; got none", cc.name)
+			} else {
+				continue
+			}
+		} else {
+			if err != nil {
+				t.Errorf("%s cannot update: %v", cc.name, err)
+			}
+		}
+		updatedTrip, err := m.GetTrip(c, tid, aid)
+		if err != nil {
+			t.Errorf("%s: cannot get trip after update: %v", cc.name, err)
+		}
+		if cc.now != updatedTrip.UpdatedAt {
+			t.Errorf("%s: incorrect updatedat: want: %d, got: %d", cc.name, cc.now, updatedTrip.UpdatedAt)
+		}
+	}
+
 }
 
 func TestMain(m *testing.M) {
