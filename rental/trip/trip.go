@@ -87,11 +87,36 @@ func (s *Service) CreateTrip(c context.Context, req *rentalpb.CreateTripRequest)
 }
 
 func (s *Service) GetTrip(c context.Context, req *rentalpb.GetTripRequest) (*rentalpb.Trip, error) {
-	return nil, status.Error(codes.Unimplemented, "")
+	aid, err := auth.AccountIDFromContext(c)
+	if err != nil {
+		return nil, err
+	}
+	trip, err := s.Mongo.GetTrip(c, id.TripID(req.Id), aid)
+	if err != nil {
+		s.Logger.Error("cannot get trip", zap.Error(err))
+		return nil, status.Error(codes.NotFound, "111111111")
+	}
+	return trip.Trip, nil
 }
 
 func (s *Service) GetTrips(c context.Context, req *rentalpb.GetTripsRequest) (*rentalpb.GetTripsResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "")
+	aid, err := auth.AccountIDFromContext(c)
+	if err != nil {
+		return nil, err
+	}
+	trips, err := s.Mongo.GetTrips(c, aid, req.Status)
+	if err != nil {
+		s.Logger.Error("cannot get trips", zap.Error(err))
+		return nil, status.Error(codes.Internal, "")
+	}
+	res := &rentalpb.GetTripsResponse{}
+	for _, trip := range trips {
+		res.Trips = append(res.Trips, &rentalpb.TripEntity{
+			Id:   trip.ID.Hex(),
+			Trip: trip.Trip,
+		})
+	}
+	return res, nil
 }
 
 func (s *Service) UpdateTrip(c context.Context, req *rentalpb.UpdateTripRequest) (*rentalpb.Trip, error) {
