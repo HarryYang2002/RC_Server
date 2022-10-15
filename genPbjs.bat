@@ -1,1 +1,1 @@
-%PBTS_BIN_DIR%\pbjs -t static -w es6 %PROTO_PATH%\%DOMAIN%.proto --no-create --no-encode --no-decode --no-verify --no-delimited -o %PBTS_OUT_DIR%\%DOMAIN%_pb_tmp.js
+%PBTS_BIN_DIR%\pbjs -t static -w es6 %PROTO_PATH%\%DOMAIN%.proto --no-create --no-encode --no-decode --no-verify --no-delimited --force-number -o %PBTS_OUT_DIR%\%DOMAIN%_pb_tmp.js

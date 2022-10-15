@@ -6,13 +6,16 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"log"
+	"server/rental/ai"
 	rentalpb "server/rental/api/gen/v1"
 	"server/rental/trip"
 	"server/rental/trip/client/car"
 	"server/rental/trip/client/poi"
 	"server/rental/trip/client/profile"
 	"server/rental/trip/dao"
+	coolenvpb "server/shared/coolenv"
 	"server/shared/server"
 )
 
@@ -28,6 +31,11 @@ func main() {
 		logger.Fatal("cannot connect database", zap.Error(err))
 	}
 
+	ac, err := grpc.Dial("localhost:18001", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		logger.Fatal("cannot connect aiService", zap.Error(err))
+	}
+
 	logger.Sugar().Fatal(server.RunGRPCServer(&server.GRPCConfig{
 		Name:              "rental",
 		Logger:            logger,
@@ -37,8 +45,11 @@ func main() {
 				CarManager:    &car.Manager{},
 				ProfileManage: &profile.Manager{},
 				PoiManager:    &poi.Manager{},
-				Mongo:         dao.NewMongo(mongoClient.Database("SZTURC")),
-				Logger:        logger,
+				DistanceCalc: &ai.Client{
+					AIClient: coolenvpb.NewAIServiceClient(ac),
+				},
+				Mongo:  dao.NewMongo(mongoClient.Database("SZTURC")),
+				Logger: logger,
 			})
 		},
 		Addr: ":8082",
