@@ -113,11 +113,13 @@ func TestTripLifecycle(t *testing.T) {
 
 	tid := id.TripID("66660c3237970cf89b68d545")
 	mgo.NewObjIDWithValue(tid)
+
 	cases := []struct {
-		name string
-		op   func() (*rentalpb.Trip, error)
-		want string
-		now  int64
+		name    string
+		op      func() (*rentalpb.Trip, error)
+		want    string
+		now     int64
+		wantErr bool
 	}{
 		{
 			name: "create_trip",
@@ -172,6 +174,16 @@ func TestTripLifecycle(t *testing.T) {
 			},
 			want: `{"account_id":"account_for_lifecycle","car_id":"car1","start":{"location":{"latitude":32.123,"longitude":113.2323},"poi_name":"天坛","timestamp_sec":10000},"current":{"location":{"latitude":32.444,"longitude":114.7789},"fee_cent":18643,"km_driven":1034,"poi_name":"故宫","timestamp_sec":30000},"end":{"location":{"latitude":32.444,"longitude":114.7789},"fee_cent":18643,"km_driven":1034,"poi_name":"故宫","timestamp_sec":30000},"status":2}`,
 		},
+		{
+			name: "update_after_finished",
+			now:  50000,
+			op: func() (*rentalpb.Trip, error) {
+				return s.UpdateTrip(c, &rentalpb.UpdateTripRequest{
+					Id: tid.String(),
+				})
+			},
+			wantErr: true,
+		},
 	}
 	rand.Seed(1234)
 	for _, cc := range cases {
@@ -179,6 +191,13 @@ func TestTripLifecycle(t *testing.T) {
 			return cc.now
 		}
 		trip, err := cc.op()
+		if cc.wantErr {
+			if err == nil {
+				t.Errorf("%s: want error; got none", cc.name)
+			} else {
+				continue
+			}
+		}
 		if err != nil {
 			t.Errorf("%s: operation failed: %v", cc.name, err)
 			continue

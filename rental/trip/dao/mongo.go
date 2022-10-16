@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	rentalpb "server/rental/api/gen/v1"
 	"server/shared/id"
 	mgo "server/shared/mongo"
@@ -75,7 +76,9 @@ func (m *Mongo) GetTrips(c context.Context, accountID id.AccountID, status renta
 	if status != rentalpb.TripStatus_IS_NOT_SPECIFIED {
 		filter[statusField] = status
 	}
-	res, err := m.col.Find(c, filter)
+	res, err := m.col.Find(c, filter, options.Find().SetSort(bson.M{
+		mgo.IDFieldName: -1,
+	}))
 	if err != nil {
 		return nil, err
 	}
