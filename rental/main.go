@@ -10,11 +10,13 @@ import (
 	"log"
 	"server/rental/ai"
 	rentalpb "server/rental/api/gen/v1"
+	"server/rental/profile"
+	profiledao "server/rental/profile/dao"
 	"server/rental/trip"
 	"server/rental/trip/client/car"
 	"server/rental/trip/client/poi"
-	"server/rental/trip/client/profile"
-	"server/rental/trip/dao"
+	profClient "server/rental/trip/client/profile"
+	tripdao "server/rental/trip/dao"
 	coolenvpb "server/shared/coolenv"
 	"server/shared/server"
 )
@@ -35,7 +37,7 @@ func main() {
 	if err != nil {
 		logger.Fatal("cannot connect aiService", zap.Error(err))
 	}
-
+	db := mongoClient.Database("SZTURC")
 	logger.Sugar().Fatal(server.RunGRPCServer(&server.GRPCConfig{
 		Name:              "rental",
 		Logger:            logger,
@@ -43,12 +45,16 @@ func main() {
 		RegisterFunc: func(s *grpc.Server) {
 			rentalpb.RegisterTripServiceServer(s, &trip.Service{
 				CarManager:    &car.Manager{},
-				ProfileManage: &profile.Manager{},
+				ProfileManage: &profClient.Manager{},
 				PoiManager:    &poi.Manager{},
 				DistanceCalc: &ai.Client{
 					AIClient: coolenvpb.NewAIServiceClient(ac),
 				},
-				Mongo:  dao.NewMongo(mongoClient.Database("SZTURC")),
+				Mongo:  tripdao.NewMongo(db),
+				Logger: logger,
+			})
+			rentalpb.RegisterProfileServiceServer(s, &profile.Service{
+				Mongo:  profiledao.NewMongo(db),
 				Logger: logger,
 			})
 		},
