@@ -37,6 +37,7 @@ func main() {
 	if err != nil {
 		logger.Fatal("cannot connect aiService", zap.Error(err))
 	}
+
 	db := mongoClient.Database("SZTURC")
 	logger.Sugar().Fatal(server.RunGRPCServer(&server.GRPCConfig{
 		Name:              "rental",

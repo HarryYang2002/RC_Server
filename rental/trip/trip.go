@@ -186,7 +186,7 @@ func (s *Service) calcCurrentStatus(c context.Context, last *rentalpb.LocationSt
 
 	dist, err := s.DistanceCalc.DistanceKm(c, last.Location, cur)
 	if err != nil {
-		s.Logger.Warn("cannot calcculate distance", zap.Error(err))
+		s.Logger.Warn("cannot calculate distance", zap.Error(err))
 	}
 
 	poi, err := s.PoiManager.Resolve(c, cur)

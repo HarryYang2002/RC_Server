@@ -107,7 +107,7 @@ func newService(c context.Context, t *testing.T) *Service {
 	if err != nil {
 		t.Fatalf("cannot create new mongo client: %v", err)
 	}
-	db := mc.Database("trip")
+	db := mc.Database("profile")
 	mongotesting.SetupIndexes(c, db)
 	logger, err := server.NewZapLogger()
 	if err != nil {

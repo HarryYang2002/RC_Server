@@ -17,6 +17,7 @@ const (
 	identityStatusField = profileField + ".identitystatus"
 )
 
+
 type Mongo struct {
 	col *mongo.Collection
 }
@@ -28,8 +29,8 @@ func NewMongo(db *mongo.Database) *Mongo {
 }
 
 type ProfileRecord struct {
-	AccountID string            `bson:"accountid"`
-	Profile   *rentalpb.Profile `bson:"profile"`
+	AccountID   string            `bson:"accountid"`
+	Profile     *rentalpb.Profile `bson:"profile"`
 }
 
 func (m *Mongo) GetProfile(c context.Context, aid id.AccountID) (*rentalpb.Profile, error) {
@@ -52,10 +53,14 @@ func byAccountID(aid id.AccountID) bson.M {
 }
 
 func (m *Mongo) UpdateProfile(c context.Context, aid id.AccountID, prevState rentalpb.IdentityStatus, p *rentalpb.Profile) error {
-	_, err := m.col.UpdateOne(c, bson.M{
-		accountIDField:      aid.String(),
+	filter := bson.M{
 		identityStatusField: prevState,
-	}, mgo.Set(bson.M{
+	}
+	if prevState == rentalpb.IdentityStatus_UNSUBMITTED {
+		filter = mgo.ZeroOrDoesNotExist(identityStatusField, prevState)
+	}
+	filter[accountIDField] = aid.String()
+	_, err := m.col.UpdateOne(c, filter, mgo.Set(bson.M{
 		accountIDField: aid.String(),
 		profileField:   p,
 	}), options.Update().SetUpsert(true))
