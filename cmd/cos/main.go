@@ -3,28 +3,34 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/tencentyun/cos-go-sdk-v5"
-	"net/http"
-	"net/url"
-	"time"
+	"google.golang.org/grpc/credentials/insecure"
+	blobpb "server/blob/api/gen/v1"
+
+	"google.golang.org/grpc"
 )
 
 func main() {
-	u, _ := url.Parse("your url")
-	b := &cos.BaseURL{BucketURL: u}
-	ak := "your SecretID"
-	sk := "your SecretKey"
-
-	client := cos.NewClient(b, &http.Client{
-		Transport: &cos.AuthorizationTransport{
-			SecretID: ak,
-			SecretKey: sk,
-		},
-	})
-	name := "aaa.jpg"
-	presignedURL, err := client.Object.GetPresignedURL(context.Background(), http.MethodPut, name, ak, sk, 1*time.Hour, nil)
+	conn, err := grpc.Dial("localhost:8083", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		panic(any(err))
 	}
-	fmt.Println(presignedURL)
+	c := blobpb.NewBlobServiceClient(conn)
+
+	ctx := context.Background()
+	//res, err := c.CreateBlob(ctx, &blobpb.CreateBlobRequest{
+	//	AccountId:           "account_2",
+	//	UploadUrlTimeoutSec: 1000,
+	//})
+	//res, err := c.GetBlob(ctx, &blobpb.GetBlobRequest{
+	//	Id: "63557570524362c132578ef1",
+	//})
+	res, err := c.GetBlobURL(ctx, &blobpb.GetBlobURLRequest{
+		Id:         "63557570524362c132578ef1",
+		TimeoutSec: 100,
+	})
+	if err != nil {
+		panic(any(err))
+	}
+
+	fmt.Printf("%+v\n", res)
 }
