@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"fmt"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -27,6 +28,7 @@ type TokenGenerator interface {
 }
 
 func (s *Service) Login(c context.Context, req *authpb.LoginRequest) (*authpb.LoginResponse, error) {
+	fmt.Println("Login start")
 	s.Logger.Info("received code", zap.String("code", req.Code))
 	OpenID, err := s.OpenIDResolver.Resolve(req.Code)
 	if err != nil {

@@ -2,9 +2,6 @@ package profile
 
 import (
 	"context"
-	"encoding/base64"
-	"fmt"
-	"google.golang.org/protobuf/proto"
 	rentalpb "server/rental/api/gen/v1"
 	"server/shared/id"
 )
@@ -17,20 +14,24 @@ type Manager struct {
 	Fetcher Fetcher
 }
 
-func (m *Manager) Verify(c context.Context, aid id.AccountID) (id.IdentityID, error) {
-	nilID := id.IdentityID("")
-	p, err := m.Fetcher.GetProfile(c, &rentalpb.GetProfileRequest{})
-	if err != nil {
-		return nilID, fmt.Errorf("cannot get Profile: %v", err)
-	}
-	if p.IdentityStatus != rentalpb.IdentityStatus_VERIFIED {
-		return nilID, fmt.Errorf("invalid identity status")
-	}
+//func (m *Manager) Verify(c context.Context, aid id.AccountID) (id.IdentityID, error) {
+//	nilID := id.IdentityID("")
+//	p, err := m.Fetcher.GetProfile(c, &rentalpb.GetProfileRequest{})
+//	if err != nil {
+//		return nilID, fmt.Errorf("cannot get Profile: %v", err)
+//	}
+//	if p.IdentityStatus != rentalpb.IdentityStatus_VERIFIED {
+//		return nilID, fmt.Errorf("invalid identity status")
+//	}
+//
+//	b, err := proto.Marshal(p.Identity)
+//	if err != nil {
+//		return nilID, fmt.Errorf("cannot marshal identity: %v", err)
+//	}
+//
+//	return id.IdentityID(base64.StdEncoding.EncodeToString(b)), nil
+//}
 
-	b, err := proto.Marshal(p.Identity)
-	if err != nil {
-		return nilID, fmt.Errorf("cannot marshal identity: %v", err)
-	}
-
-	return id.IdentityID(base64.StdEncoding.EncodeToString(b)), nil
+func (p *Manager) Verify(context.Context, id.AccountID) (id.IdentityID, error) {
+	return id.IdentityID("a1"), nil
 }

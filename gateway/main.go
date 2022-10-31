@@ -46,7 +46,7 @@ func main() {
 		{
 			name:         "profile",
 			addr:         "localhost:8082",
-			registerFunc: rentalpb.RegisterTripServiceHandlerFromEndpoint,
+			registerFunc: rentalpb.RegisterProfileServiceHandlerFromEndpoint,
 		},
 	}
 

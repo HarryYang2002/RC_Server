@@ -42,24 +42,29 @@ type DistanceCalc interface {
 }
 
 func (s *Service) CreateTrip(c context.Context, req *rentalpb.CreateTripRequest) (*rentalpb.TripEntity, error) {
+	fmt.Println("CreateTrip")
 	aid, err := auth.AccountIDFromContext(c)
 	if err != nil {
 		return nil, err
 	}
 
 	if req.CarId == "" || req.Start == nil {
+		fmt.Println("error1")
 		return nil, status.Error(codes.Internal, "")
 	}
 
 	//验证驾驶者身份
 	iID, err := s.ProfileManage.Verify(c, aid)
 	if err != nil {
+		fmt.Println("error2")
+		fmt.Println(err)
 		return nil, status.Errorf(codes.FailedPrecondition, err.Error())
 	}
 	//检查车辆状态
 	carID := id.CarID(req.CarId)
 	err = s.CarManager.Verify(c, carID, req.Start)
 	if err != nil {
+		fmt.Println("error3")
 		return nil, status.Error(codes.FailedPrecondition, err.Error())
 	}
 
@@ -97,6 +102,7 @@ func (s *Service) CreateTrip(c context.Context, req *rentalpb.CreateTripRequest)
 }
 
 func (s *Service) GetTrip(c context.Context, req *rentalpb.GetTripRequest) (*rentalpb.Trip, error) {
+	fmt.Println("get Trip")
 	aid, err := auth.AccountIDFromContext(c)
 	if err != nil {
 		fmt.Println(err)
@@ -112,6 +118,7 @@ func (s *Service) GetTrip(c context.Context, req *rentalpb.GetTripRequest) (*ren
 }
 
 func (s *Service) GetTrips(c context.Context, req *rentalpb.GetTripsRequest) (*rentalpb.GetTripsResponse, error) {
+	fmt.Println("get Trips")
 	aid, err := auth.AccountIDFromContext(c)
 	if err != nil {
 		return nil, err
