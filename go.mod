@@ -34,6 +34,7 @@ require (
 	github.com/opencontainers/image-spec v1.0.2 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/sirupsen/logrus v1.9.0 // indirect
+	github.com/streadway/amqp v1.0.0 // indirect
 	github.com/tencentcloud/tencentcloud-sdk-go v1.0.519 // indirect
 	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/aa v1.0.519 // indirect
 	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/aai v1.0.519 // indirect
