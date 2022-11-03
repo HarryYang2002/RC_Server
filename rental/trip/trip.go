@@ -11,6 +11,7 @@ import (
 	"server/rental/trip/dao"
 	"server/shared/auth"
 	"server/shared/id"
+	"server/shared/mongo/objid"
 	"time"
 )
 
@@ -29,8 +30,9 @@ type ProfileManage interface {
 }
 
 type CarManager interface {
-	Verify(context.Context, id.CarID, *rentalpb.Location) error
-	Unlock(context.Context, id.CarID) error
+	Verify(c context.Context, cid id.CarID, loc *rentalpb.Location) error
+	Unlock(c context.Context, cid id.CarID, aid id.AccountID, tid id.TripID, avatarURL string) error
+	Lock(c context.Context, cid id.CarID) error
 }
 
 type PoiManager interface {
@@ -89,7 +91,7 @@ func (s *Service) CreateTrip(c context.Context, req *rentalpb.CreateTripRequest)
 	}
 	//车辆开锁
 	go func() {
-		err = s.CarManager.Unlock(context.Background(), carID)
+		err = s.CarManager.Unlock(context.Background(), carID, aid, objid.ToTripID(trip.ID), req.AvatarUrl)
 		if err != nil {
 			s.Logger.Error("cannot unlock car", zap.Error(err))
 		}
@@ -173,6 +175,10 @@ func (s *Service) UpdateTrip(c context.Context, req *rentalpb.UpdateTripRequest)
 	if req.EndTrip {
 		tr.Trip.End = tr.Trip.Current
 		tr.Trip.Status = rentalpb.TripStatus_FINISHED
+		err := s.CarManager.Lock(c, id.CarID(tr.Trip.CarId))
+		if err != nil {
+			return nil, status.Errorf(codes.FailedPrecondition, "cannot lock car: %v", err)
+		}
 	}
 	err = s.Mongo.UpdateTrip(c, tid, aid, tr.UpdatedAt, tr.Trip)
 	if err != nil {

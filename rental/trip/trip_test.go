@@ -256,12 +256,16 @@ func (p *profileManage) Verify(context.Context, id.AccountID) (id.IdentityID, er
 	return p.iID, p.err
 }
 
-func (c *carManage) Verify(context.Context, id.CarID, *rentalpb.Location) error {
-	return c.verifyErr
+func (m *carManage) Verify(context.Context, id.CarID, *rentalpb.Location) error {
+	return m.verifyErr
 }
 
-func (c *carManage) Unlock(context.Context, id.CarID) error {
-	return c.unlockErr
+func (m *carManage) Lock(c context.Context, cid id.CarID) error {
+	return nil
+}
+
+func (m *carManage) Unlock(c context.Context, cid id.CarID, aid id.AccountID, tid id.TripID, avatarURL string) error {
+	return m.unlockErr
 }
 
 func TestMain(m *testing.M) {
