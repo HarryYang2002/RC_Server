@@ -9,6 +9,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"log"
 	blobpb "server/blob/api/gen/v1"
+	carpb "server/car/api/gen/v1"
 	"server/rental/ai"
 	rentalpb "server/rental/api/gen/v1"
 	"server/rental/profile"
@@ -59,6 +60,11 @@ func main() {
 		Logger:            logger,
 	}
 
+	carConn, err := grpc.Dial("localhost:8084", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		logger.Fatal("cannot connect car service", zap.Error(err))
+	}
+
 	logger.Sugar().Fatal(server.RunGRPCServer(&server.GRPCConfig{
 		Name:              "rental",
 		Addr:              ":8082",
@@ -66,7 +72,9 @@ func main() {
 		Logger:            logger,
 		RegisterFunc: func(s *grpc.Server) {
 			rentalpb.RegisterTripServiceServer(s, &trip.Service{
-				CarManager: &car.Manager{},
+				CarManager: &car.Manager{
+					CarService: carpb.NewCarServiceClient(carConn),
+				},
 				ProfileManage: &profClient.Manager{
 					Fetcher: profService,
 				},
