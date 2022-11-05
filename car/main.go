@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"github.com/gorilla/websocket"
 	"github.com/streadway/amqp"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -9,12 +10,14 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"log"
+	"net/http"
 	carpb "server/car/api/gen/v1"
 	"server/car/car"
 	"server/car/dao"
 	amqpclt "server/car/mq/amqpclt"
 	"server/car/sim"
 	"server/car/sim/pos"
+	"server/car/ws"
 	coolenvpb "server/shared/coolenv"
 	"server/shared/server"
 )
@@ -73,20 +76,19 @@ func main() {
 	go simController.RunSimulations(context.Background())
 
 	// Start websocket handler.
-	//u := &websocket.Upgrader{
-	//	CheckOrigin: func(r *http.Request) bool {
-	//		return true
-	//	},
-	//}
-	//http.HandleFunc("/ws", ws.Handler(u, sub, logger))
-	//go func() {
-	//	addr := ":9090"
-	//	logger.Info("HTTP server started.", zap.String("addr", addr))
-	//	logger.Sugar().Fatal(
-	//		http.ListenAndServe(addr, nil))
-	//}()
+	u := &websocket.Upgrader{
+		CheckOrigin: func(r *http.Request) bool {
+			return true
+		},
+	}
+	http.HandleFunc("/ws", ws.Handler(u, sub, logger))
+	go func() {
+		addr := ":9090"
+		logger.Info("HTTP server started.", zap.String("addr", addr))
+		logger.Sugar().Fatal(http.ListenAndServe(addr, nil))
+	}()
 
-	// Start trip updater.
+	//Start trip updater.
 	//tripConn, err := grpc.Dial("localhost:8082", grpc.WithInsecure())
 	//if err != nil {
 	//	logger.Fatal("cannot connect trip service", zap.Error(err))

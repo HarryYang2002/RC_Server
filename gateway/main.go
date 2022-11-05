@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	authpb "server/auth/api/gen/v1"
+	carpb "server/car/api/gen/v1"
 	rentalpb "server/rental/api/gen/v1"
 	"server/shared/server"
 )
@@ -47,6 +48,11 @@ func main() {
 			name:         "profile",
 			addr:         "localhost:8082",
 			registerFunc: rentalpb.RegisterProfileServiceHandlerFromEndpoint,
+		},
+		{
+			name:         "car",
+			addr:         "localhost:8084",
+			registerFunc: carpb.RegisterCarServiceHandlerFromEndpoint,
 		},
 	}
 
