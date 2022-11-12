@@ -7,9 +7,11 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"log"
 	"net/http"
+	"net/textproto"
 	authpb "server/auth/api/gen/v1"
 	carpb "server/car/api/gen/v1"
 	rentalpb "server/rental/api/gen/v1"
+	"server/shared/auth"
 	"server/shared/server"
 )
 
@@ -27,7 +29,13 @@ func main() {
 			EnumsAsInts: true,
 			OrigName:    true,
 		},
-	))
+	), runtime.WithIncomingHeaderMatcher(func(key string) (string, bool) {
+		//logger.Debug("checking key", zap.String("key", key))
+		if key == textproto.CanonicalMIMEHeaderKey(runtime.MetadataHeaderPrefix+auth.ImpersonateAccountHeader) {
+			return "", false
+		}
+		return runtime.DefaultHeaderMatcher(key)
+	}))
 
 	serverConfig := []struct {
 		name         string

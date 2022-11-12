@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/streadway/amqp"
 	"google.golang.org/grpc"
@@ -18,6 +19,7 @@ func main() {
 		panic(any(err))
 	}
 
+	//距离计算
 	ac := coolenvpb.NewAIServiceClient(conn)
 	c := context.Background()
 	res, err := ac.MeasureDistance(c, &coolenvpb.MeasureDistanceRequest{
@@ -35,6 +37,7 @@ func main() {
 	}
 	fmt.Printf("%+v\n", res)
 
+	//驾照识别
 	idRes, err := ac.LicIdentity(c, &coolenvpb.IdentityRequest{
 		Photo: []byte{1, 2, 3, 4, 5},
 	})
@@ -43,6 +46,7 @@ func main() {
 	}
 	fmt.Printf("%+v\n", idRes)
 
+	//汽车位置的模拟
 	_, err = ac.SimulateCarPos(c, &coolenvpb.SimulateCarPosRequest{
 		CarId: "car123",
 		InitialPos: &coolenvpb.Location{
@@ -83,13 +87,12 @@ func main() {
 		shouldStop := false
 		select {
 		case msg := <-ch:
-			fmt.Printf("%s\n", msg.Body)
-			//var update coolenvpb.CarPosUpdate
-			//err = json.Unmarshal(msg.Body, &update)
-			//if err != nil {
-			//	panic(err)
-			//}
-			//fmt.Printf("%+v\n", &update)
+			var update coolenvpb.CarPosUpdate
+			err := json.Unmarshal(msg.Body, &update)
+			if err != nil {
+				panic(any(err))
+			}
+			fmt.Printf("%+v\n", &update)
 		case <-tm:
 			shouldStop = true
 		}

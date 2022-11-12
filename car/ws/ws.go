@@ -2,12 +2,14 @@ package ws
 
 import (
 	"context"
-	"github.com/gorilla/websocket"
-	"go.uber.org/zap"
 	"net/http"
 	"server/car/mq"
+
+	"github.com/gorilla/websocket"
+	"go.uber.org/zap"
 )
 
+// Handler creates a websocket http handler.
 func Handler(u *websocket.Upgrader, sub mq.Subscriber, logger *zap.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		conn, err := u.Upgrade(w, r, nil)
@@ -36,8 +38,10 @@ func Handler(u *websocket.Upgrader, sub mq.Subscriber, logger *zap.Logger) http.
 			for {
 				_, _, err := conn.ReadMessage()
 				if err != nil {
-					if !websocket.IsCloseError(err, websocket.CloseNoStatusReceived, websocket.CloseNormalClosure) {
-						logger.Warn("unexpect read error", zap.Error(err))
+					if !websocket.IsCloseError(err,
+						websocket.CloseGoingAway,
+						websocket.CloseNormalClosure) {
+						logger.Warn("unexpected read error", zap.Error(err))
 					}
 					done <- struct{}{}
 					break
@@ -48,8 +52,6 @@ func Handler(u *websocket.Upgrader, sub mq.Subscriber, logger *zap.Logger) http.
 		for {
 			select {
 			case msg := <-msgs:
-				//停顿三秒，方便观察，todo：fix
-				//time.Sleep(3 * time.Second)
 				err := conn.WriteJSON(msg)
 				if err != nil {
 					logger.Warn("cannot write JSON", zap.Error(err))

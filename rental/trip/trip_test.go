@@ -225,7 +225,11 @@ func newService(c context.Context, t *testing.T, pm ProfileManage, cm CarManager
 	}
 
 	db := mc.Database("SZTURC")
-	mongotesting.SetupIndexes(c, db)
+	err = mongotesting.SetupIndexes(c, db)
+	if err != nil {
+		fmt.Println(err)
+		return nil
+	}
 
 	return &Service{
 		ProfileManage: pm,
